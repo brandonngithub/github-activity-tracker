@@ -1,42 +1,57 @@
+
 import os
 import requests
 
-from datetime import datetime, timedelta, time
-from zoneinfo import ZoneInfo
+from datetime import datetime, timedelta, timezone
 
-# GitHub accounts to monitor
 GITHUB_USERS = [
     "brandonngithub",
+    "amarz45",
     "nbkurian11",
     "Harshk10-star",
     "TarunK-EE",
-    "amarz45",
     "loboa763",
-    "vickenpogosyan"
+    "vickenpogosyan",
 ]
 
 GITHUB_TOKEN = os.environ["GH_TOKEN"]
 DISCORD_WEBHOOK = os.environ["DISCORD_WEBHOOK"]
 
-TIMEZONE = ZoneInfo("America/Toronto")
-
-GITHUB_GRAPHQL = "https://api.github.com/graphql"
+GITHUB_API = "https://api.github.com/graphql"
 
 QUERY = """
 query($username: String!, $from: DateTime!, $to: DateTime!) {
-  user(login: $username) {
-    contributionsCollection(from: $from, to: $to) {
-      totalCommitContributions
+    user(login: $username) {
+        contributionsCollection(from: $from, to: $to) {
+            contributionCalendar {
+                weeks {
+                    contributionDays {
+                        date
+                        contributionCount
+                    }
+                }
+            }
+        }
     }
-  }
 }
 """
 
 
-def get_commit_count(username, start, end):
+def get_contribution_count(username, target_date):
+
+    # GitHub contribution calendar uses UTC dates
+    start = datetime(
+        target_date.year,
+        target_date.month,
+        target_date.day,
+        tzinfo=timezone.utc
+    )
+
+    end = start + timedelta(days=1) - timedelta(seconds=1)
+
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
-        "Content-Type": "application/json",
+        "Accept": "application/vnd.github+json",
     }
 
     variables = {
@@ -46,7 +61,7 @@ def get_commit_count(username, start, end):
     }
 
     response = requests.post(
-        GITHUB_GRAPHQL,
+        GITHUB_API,
         headers=headers,
         json={
             "query": QUERY,
@@ -57,20 +72,35 @@ def get_commit_count(username, start, end):
 
     response.raise_for_status()
 
-    data = response.json()
+    result = response.json()
 
-    if "errors" in data:
-        raise RuntimeError(data["errors"])
+    if "errors" in result:
+        raise RuntimeError(result["errors"])
 
-    user = data["data"]["user"]
+    user = result["data"]["user"]
 
     if user is None:
-        raise ValueError(f"GitHub user not found: {username}")
+        raise ValueError(f"User not found: {username}")
 
-    return user["contributionsCollection"]["totalCommitContributions"]
+    weeks = (
+        user["contributionsCollection"]
+        ["contributionCalendar"]["weeks"]
+    )
+
+    # Find the exact date in the contribution calendar
+    for week in weeks:
+        for day in week["contributionDays"]:
+            if day["date"] == target_date.isoformat():
+                return day["contributionCount"]
+
+    # Don't silently treat missing data as zero
+    raise RuntimeError(
+        f"Date {target_date} missing from {username}'s calendar"
+    )
 
 
 def send_discord_report(message):
+
     response = requests.post(
         DISCORD_WEBHOOK,
         json={"content": message},
@@ -81,26 +111,20 @@ def send_discord_report(message):
 
 
 def main():
-    # Yesterday in Toronto
-    today = datetime.now(TIMEZONE).date()
-    yesterday = today - timedelta(days=1)
 
-    # Local midnight boundaries, converted to UTC
-    start = datetime.combine(
-        yesterday, time.min, tzinfo=TIMEZONE
-    ).astimezone(ZoneInfo("UTC"))
-
-    end = datetime.combine(
-        today, time.min, tzinfo=TIMEZONE
-    ).astimezone(ZoneInfo("UTC"))
+    # Yesterday according to GitHub's UTC calendar
+    yesterday = datetime.now(timezone.utc).date() - timedelta(days=1)
 
     committed = []
     inactive = []
 
     for username in GITHUB_USERS:
+
         print(f"Checking {username}...")
 
-        count = get_commit_count(username, start, end)
+        count = get_contribution_count(username, yesterday)
+
+        print(f"{username}: {count} contributions")
 
         if count > 0:
             committed.append((username, count))
@@ -112,25 +136,25 @@ def main():
         f"**Date:** {yesterday.isoformat()}\n\n"
     )
 
-    message += f"### ✅ Commits ({len(committed)})\n"
+    message += f"### ✅ Contributions ({len(committed)})\n"
 
     if committed:
         for username, count in committed:
-            message += f"- **{username}** — {count} commit(s)\n"
+            message += f"- **{username}** — {count} contribution(s)\n"
     else:
-        message += "- No commits yesterday.\n"
+        message += "- Nobody had contributions yesterday.\n"
 
-    message += f"\n### ❌ No commits ({len(inactive)})\n"
+    message += f"\n### ❌ No contributions ({len(inactive)})\n"
 
     if inactive:
         for username in inactive:
             message += f"- **{username}**\n"
     else:
-        message += "- Everyone committed!\n"
+        message += "- Everyone had contributions!\n"
 
     send_discord_report(message)
 
-    print("Daily report sent successfully!")
+    print("Discord report sent successfully!")
 
 
 if __name__ == "__main__":
