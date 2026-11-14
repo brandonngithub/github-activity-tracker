@@ -6,7 +6,6 @@ on:
     # Every day at 13:00 UTC
     - cron: "0 13 * * *"
 
-  # Allow manual testing
   workflow_dispatch:
 
 jobs:
@@ -27,6 +26,6 @@ jobs:
 
       - name: Run activity tracker
         env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: python tracker.py
