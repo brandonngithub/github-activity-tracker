@@ -166,7 +166,7 @@ def format_report_date(report_date):
     else:
         suffix = {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
 
-    return report_date.strftime(f"%B {day}{suffix}, %Y")
+    return f"{report_date.strftime('%A %B')} {day}{suffix}".upper()
 
 
 def format_active_days(active_days):
@@ -288,7 +288,6 @@ def send_discord_report(embeds, image_path):
             DISCORD_WEBHOOK,
             data={
                 "payload_json": json.dumps({
-                    "content": "Keep the streak alive! 🔥",
                     "embeds": embeds,
                 }),
             },
@@ -299,6 +298,13 @@ def send_discord_report(embeds, image_path):
         )
 
     response.raise_for_status()
+
+    follow_up_response = requests.post(
+        DISCORD_WEBHOOK,
+        json={"content": "Keep the streak alive! 🔥"},
+        timeout=30,
+    )
+    follow_up_response.raise_for_status()
 
 
 def main():
@@ -341,7 +347,10 @@ def main():
         for position, (username, active_days) in enumerate(leaderboard, start=1)
     )
     leaderboard_embed = {
-        "title": f"🏆 Monthly Leaderboard — {month_start.strftime('%B %Y')}",
+        "title": (
+            f"🏆 MONTHLY LEADERBOARD — "
+            f"{month_start.strftime('%B %Y').upper()}"
+        ),
         "description": leaderboard_text or "No contributions yet this month.",
         "color": 0xFEE75C,
     }
