@@ -3,7 +3,7 @@ name: Daily GitHub Activity Report
 
 on:
   schedule:
-    - cron: "49 14 * * *"
+    - cron: "7 13 * * *"
 
   workflow_dispatch:
 
