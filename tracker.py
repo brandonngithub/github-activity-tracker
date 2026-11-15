@@ -13,16 +13,20 @@ GITHUB_USERS = [
     "brandonngithub",
     "nbkurian11",
     "Harshk10-star",
+    "TarunK-EE",
     "amarz45",
     "loboa763",
+    "vickenpogosyan",
 ]
 
 DISCORD_NAMES = {
     "brandonngithub": "7brv",
     "nbkurian11": "youngneezy",
     "Harshk10-star": "_harsh_0052",
+    "TarunK-EE": "freeddawg",
     "amarz45": "amaral455",
     "loboa763": "rllymyself",
+    "vickenpogosyan": "vic2slick_",
 }
 
 DISCORD_AVATARS = {
@@ -32,10 +36,14 @@ DISCORD_AVATARS = {
         "https://raw.githubusercontent.com/brandonngithub/github-activity-tracker/main/avatars/noel.png",
     "Harshk10-star":
         "https://raw.githubusercontent.com/brandonngithub/github-activity-tracker/main/avatars/harsh.png",
+    "TarunK-EE":
+        "https://raw.githubusercontent.com/brandonngithub/github-activity-tracker/main/avatars/tarun.png",
     "amarz45":
         "https://raw.githubusercontent.com/brandonngithub/github-activity-tracker/main/avatars/amar.png",
     "loboa763":
         "https://raw.githubusercontent.com/brandonngithub/github-activity-tracker/main/avatars/allister.png",
+    "vickenpogosyan":
+        "https://raw.githubusercontent.com/brandonngithub/github-activity-tracker/main/avatars/vicken.png",
 }
 
 GITHUB_TOKEN = os.environ["GH_TOKEN"]
