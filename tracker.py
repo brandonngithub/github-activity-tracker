@@ -171,42 +171,33 @@ def get_font(size, bold=False):
     return ImageFont.load_default()
 
 
-def draw_fire_icon(draw, x, y, size=22):
+def draw_fire_icon(draw, x, y, size=18):
     draw.polygon(
         [
-            (x + size * 0.5, y),
+            (x + size * 0.52, y),
             (x + size * 0.82, y + size * 0.42),
-            (x + size * 0.78, y + size * 0.82),
-            (x + size * 0.5, y + size),
-            (x + size * 0.18, y + size * 0.82),
-            (x + size * 0.18, y + size * 0.5),
+            (x + size * 0.72, y + size),
+            (x + size * 0.25, y + size),
+            (x + size * 0.08, y + size * 0.62),
+            (x + size * 0.35, y + size * 0.46),
         ],
-        fill="#ff5f1f",
+        fill="#ff6b35",
     )
-    draw.ellipse(
-        (
-            x + size * 0.3,
-            y + size * 0.42,
-            x + size * 0.7,
-            y + size * 0.92,
-        ),
-        fill="#ffb000",
-    )
-    draw.ellipse(
-        (
-            x + size * 0.42,
-            y + size * 0.58,
-            x + size * 0.62,
-            y + size * 0.92,
-        ),
-        fill="#fff3a3",
+    draw.polygon(
+        [
+            (x + size * 0.53, y + size * 0.38),
+            (x + size * 0.68, y + size * 0.7),
+            (x + size * 0.58, y + size),
+            (x + size * 0.35, y + size * 0.88),
+            (x + size * 0.4, y + size * 0.62),
+        ],
+        fill="#ffd166",
     )
 
 
 def create_activity_dashboard(activity, output_path):
     card_width = 180
-    card_height = 190
-    avatar_size = 118
+    card_height = 230
     gap = 14
     padding = 24
     header_height = 58
@@ -214,7 +205,7 @@ def create_activity_dashboard(activity, output_path):
         "RGB",
         (
             padding * 2 + len(activity) * card_width + (len(activity) - 1) * gap,
-            header_height + padding * 2 + card_height + avatar_size // 2,
+            header_height + padding * 2 + card_height,
         ),
         "#17181c",
     )
@@ -228,9 +219,9 @@ def create_activity_dashboard(activity, output_path):
 
     for index, (username, streak) in enumerate(activity):
         x = padding + index * (card_width + gap)
-        card_y = header_height + padding + avatar_size // 2
+        y = header_height + padding
         draw.rounded_rectangle(
-            (x, card_y, x + card_width, card_y + card_height),
+            (x, y, x + card_width, y + card_height),
             radius=16,
             fill="#23252b",
             outline="#3d414b",
@@ -239,32 +230,28 @@ def create_activity_dashboard(activity, output_path):
 
         avatar = ImageOps.fit(
             load_avatar(username),
-            (avatar_size, avatar_size),
+            (92, 92),
             method=Image.Resampling.LANCZOS,
         )
         mask = Image.new("L", avatar.size, 0)
         ImageDraw.Draw(mask).ellipse((0, 0, *avatar.size), fill=255)
-        image.paste(
-            avatar,
-            (x + (card_width - avatar_size) // 2, header_height + padding),
-            mask,
-        )
+        image.paste(avatar, (x + (card_width - 92) // 2, y + 18), mask)
 
         username_font = get_font(15, bold=True)
         username_width = draw.textbbox((0, 0), username, font=username_font)[2]
         draw.text(
-            (x + (card_width - username_width) // 2, card_y + 83),
+            (x + (card_width - username_width) // 2, y + 119),
             username,
             fill="#f2f3f5",
             font=username_font,
         )
         draw.text(
-            (x + 48, card_y + 127),
+            (x + 42, y + 174),
             f"{streak} day streak",
             fill="#57f287",
             font=get_font(15, bold=True),
         )
-        draw_fire_icon(draw, x + 18, card_y + 124)
+        draw_fire_icon(draw, x + 18, y + 174, size=18)
 
     image.save(output_path, format="PNG")
 
@@ -345,8 +332,7 @@ def main():
     }]
 
     leaderboard = sorted(
-        monthly_active_days,
-        key=lambda entry: (-entry[1], entry[0].lower()),
+        monthly_active_days, key=lambda entry: entry[1], reverse=True
     )[:5]
     leaderboard_text = "\n".join(
         f"**{position}. {username}** — {active_days} active day(s)"
