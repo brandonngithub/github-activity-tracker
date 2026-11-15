@@ -13,4 +13,5 @@ DISCORD_AVATARS = {
 ```
 
 The daily report also includes a month-to-date leaderboard showing the top
-three contributors.
+three contributors. It sends a single horizontal dashboard image so the
+account avatars appear side by side.

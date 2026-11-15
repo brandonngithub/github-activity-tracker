@@ -1,8 +1,13 @@
 
 import os
+import json
+import tempfile
 import requests
 
 from datetime import datetime, timedelta, timezone
+from io import BytesIO
+
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 GITHUB_USERS = [
     "brandonngithub",
@@ -126,13 +131,118 @@ def get_avatar_url(username):
     )
 
 
-def send_discord_report(embeds):
+def load_avatar(username):
+    response = requests.get(get_avatar_url(username), timeout=30)
+    response.raise_for_status()
 
-    response = requests.post(
-        DISCORD_WEBHOOK,
-        json={"embeds": embeds},
-        timeout=30,
+    try:
+        return Image.open(BytesIO(response.content)).convert("RGB")
+    except Exception as error:
+        raise RuntimeError(f"Unable to decode avatar for {username}") from error
+
+
+def get_font(size, bold=False):
+    font_name = "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf"
+    font_paths = [
+        f"/usr/share/fonts/truetype/dejavu/{font_name}",
+        f"/Library/Fonts/{font_name}",
+    ]
+
+    for path in font_paths:
+        if os.path.exists(path):
+            return ImageFont.truetype(path, size)
+
+    return ImageFont.load_default()
+
+
+def create_activity_dashboard(activity, monthly_totals, output_path):
+    card_width = 180
+    card_height = 230
+    gap = 14
+    padding = 24
+    header_height = 58
+    image = Image.new(
+        "RGB",
+        (
+            padding * 2 + len(activity) * card_width + (len(activity) - 1) * gap,
+            header_height + padding * 2 + card_height,
+        ),
+        "#17181c",
     )
+    draw = ImageDraw.Draw(image)
+    draw.text(
+        (padding, 18),
+        "GitHub Activity",
+        fill="#f2f3f5",
+        font=get_font(24, bold=True),
+    )
+
+    monthly_by_user = dict(monthly_totals)
+    for index, (username, count) in enumerate(activity):
+        x = padding + index * (card_width + gap)
+        y = header_height + padding
+        draw.rounded_rectangle(
+            (x, y, x + card_width, y + card_height),
+            radius=16,
+            fill="#23252b",
+            outline="#3d414b",
+            width=2,
+        )
+
+        avatar = ImageOps.fit(
+            load_avatar(username),
+            (92, 92),
+            method=Image.Resampling.LANCZOS,
+        )
+        mask = Image.new("L", avatar.size, 0)
+        ImageDraw.Draw(mask).ellipse((0, 0, *avatar.size), fill=255)
+        image.paste(avatar, (x + (card_width - 92) // 2, y + 18), mask)
+
+        username_font = get_font(15, bold=True)
+        username_width = draw.textbbox((0, 0), username, font=username_font)[2]
+        draw.text(
+            (x + (card_width - username_width) // 2, y + 119),
+            username,
+            fill="#f2f3f5",
+            font=username_font,
+        )
+        draw.text(
+            (x + 18, y + 153),
+            "Yesterday",
+            fill="#aeb4c0",
+            font=get_font(13),
+        )
+        draw.text(
+            (x + 18, y + 174),
+            f"{count} contribution(s)",
+            fill="#57f287",
+            font=get_font(15, bold=True),
+        )
+        draw.text(
+            (x + 18, y + 202),
+            f"Month: {monthly_by_user[username]}",
+            fill="#f2f3f5",
+            font=get_font(13),
+        )
+
+    image.save(output_path, format="PNG")
+
+
+def send_discord_report(embeds, image_path):
+
+    with open(image_path, "rb") as image_file:
+        response = requests.post(
+            DISCORD_WEBHOOK,
+            data={
+                "payload_json": json.dumps({
+                    "embeds": embeds,
+                }),
+            },
+            files={
+                "file": ("daily-activity.png", image_file, "image/png"),
+            },
+            timeout=30,
+        )
 
     response.raise_for_status()
 
@@ -145,6 +255,7 @@ def main():
 
     committed = []
     inactive = []
+    daily_totals = []
     monthly_totals = []
 
     for username in GITHUB_USERS:
@@ -156,6 +267,7 @@ def main():
 
         print(f"{username}: {count} contributions")
 
+        daily_totals.append((username, count))
         monthly_totals.append((username, month_total))
 
         if count > 0:
@@ -167,6 +279,7 @@ def main():
         "title": "GitHub Daily Activity Report",
         "description": f"**Date:** {yesterday.isoformat()}",
         "color": 0x5865F2,
+        "image": {"url": "attachment://daily-activity.png"},
         "fields": [{
             "name": f"✅ Contributions ({len(committed)})",
             "value": (
@@ -187,17 +300,6 @@ def main():
         }],
     }]
 
-    for username, count in committed:
-        embeds.append({
-            "author": {
-                "name": username,
-                "icon_url": get_avatar_url(username),
-            },
-            "description": f"{count} contribution(s) yesterday",
-            "thumbnail": {"url": get_avatar_url(username)},
-            "color": 0x57F287,
-        })
-
     leaderboard = sorted(
         monthly_totals, key=lambda entry: entry[1], reverse=True
     )[:3]
@@ -212,7 +314,13 @@ def main():
         "color": 0xFEE75C,
     })
 
-    send_discord_report(embeds)
+    with tempfile.NamedTemporaryFile(suffix=".png") as image_file:
+        create_activity_dashboard(
+            daily_totals,
+            monthly_totals,
+            image_file.name,
+        )
+        send_discord_report(embeds, image_file.name)
 
     print("Discord report sent successfully!")
 
