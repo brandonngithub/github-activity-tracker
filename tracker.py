@@ -169,6 +169,12 @@ def format_report_date(report_date):
     return report_date.strftime(f"%B {day}{suffix}, %Y")
 
 
+def format_active_days(active_days):
+    if active_days == 1:
+        return "1 day active"
+    return f"{active_days} days active"
+
+
 def load_avatar(username):
     response = requests.get(get_avatar_url(username), timeout=30)
     response.raise_for_status()
@@ -282,6 +288,7 @@ def send_discord_report(embeds, image_path):
             DISCORD_WEBHOOK,
             data={
                 "payload_json": json.dumps({
+                    "content": "Keep the streak alive! 🔥",
                     "embeds": embeds,
                 }),
             },
@@ -330,7 +337,7 @@ def main():
     )[:5]
     leaderboard_text = "\n".join(
         f"{position}. **{get_display_name(username)}** — "
-        f"{active_days} active day(s)"
+        f"{format_active_days(active_days)}"
         for position, (username, active_days) in enumerate(leaderboard, start=1)
     )
     leaderboard_embed = {
@@ -347,7 +354,7 @@ def main():
             "name": f"✅ Contributions ({len(committed)})",
             "value": (
                 "\n".join(
-                    f"**{get_display_name(username)}**"
+                    get_display_name(username)
                     for username, _ in committed
                 )
                 if committed else "Nobody had contributions yesterday."
@@ -357,7 +364,7 @@ def main():
             "name": f"❌ No contributions ({len(inactive)})",
             "value": (
                 "\n".join(
-                    f"**{get_display_name(username)}**"
+                    get_display_name(username)
                     for username in inactive
                 )
                 if inactive else "Everyone had contributions!"
