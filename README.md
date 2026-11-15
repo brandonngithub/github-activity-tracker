@@ -12,6 +12,6 @@ DISCORD_AVATARS = {
 }
 ```
 
-The daily report also includes a month-to-date leaderboard showing the top
-three contributors. It sends a single horizontal dashboard image so the
-account avatars appear side by side.
+The daily report includes a month-to-date leaderboard showing the top five
+people by active days. The dashboard only shows people who were active the
+previous day, along with their current contribution streak.

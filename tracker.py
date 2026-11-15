@@ -113,15 +113,31 @@ def get_contribution_count(username, target_date):
     raise RuntimeError(f"Date {target_date} missing from {username}'s calendar")
 
 
-def get_monthly_total(username, month_start, target_date):
+def get_monthly_active_days(username, month_start, target_date):
     if month_start > target_date:
         return 0
 
     return sum(
-        day["contributionCount"]
+        day["contributionCount"] > 0
         for day in get_contribution_days(username, month_start, target_date)
         if month_start.isoformat() <= day["date"] <= target_date.isoformat()
     )
+
+
+def get_streak(username, target_date):
+    start_date = target_date - timedelta(days=365)
+    days = {
+        day["date"]: day["contributionCount"]
+        for day in get_contribution_days(username, start_date, target_date)
+    }
+    streak = 0
+    current_date = target_date
+
+    while days.get(current_date.isoformat(), 0) > 0:
+        streak += 1
+        current_date -= timedelta(days=1)
+
+    return streak
 
 
 def get_avatar_url(username):
@@ -155,7 +171,7 @@ def get_font(size, bold=False):
     return ImageFont.load_default()
 
 
-def create_activity_dashboard(activity, monthly_totals, output_path):
+def create_activity_dashboard(activity, output_path):
     card_width = 180
     card_height = 230
     gap = 14
@@ -177,8 +193,7 @@ def create_activity_dashboard(activity, monthly_totals, output_path):
         font=get_font(24, bold=True),
     )
 
-    monthly_by_user = dict(monthly_totals)
-    for index, (username, count) in enumerate(activity):
+    for index, (username, streak) in enumerate(activity):
         x = padding + index * (card_width + gap)
         y = header_height + padding
         draw.rounded_rectangle(
@@ -208,21 +223,15 @@ def create_activity_dashboard(activity, monthly_totals, output_path):
         )
         draw.text(
             (x + 18, y + 153),
-            "Yesterday",
+            "✅ Active yesterday",
             fill="#aeb4c0",
             font=get_font(13),
         )
         draw.text(
             (x + 18, y + 174),
-            f"{count} contribution(s)",
+            f"🔥 Streak: {streak} day(s)",
             fill="#57f287",
             font=get_font(15, bold=True),
-        )
-        draw.text(
-            (x + 18, y + 202),
-            f"Month: {monthly_by_user[username]}",
-            fill="#f2f3f5",
-            font=get_font(13),
         )
 
     image.save(output_path, format="PNG")
@@ -256,22 +265,25 @@ def main():
     committed = []
     inactive = []
     daily_totals = []
-    monthly_totals = []
+    monthly_active_days = []
 
     for username in GITHUB_USERS:
 
         print(f"Checking {username}...")
 
         count = get_contribution_count(username, yesterday)
-        month_total = get_monthly_total(username, month_start, yesterday)
+        month_active_days = get_monthly_active_days(
+            username, month_start, yesterday
+        )
 
         print(f"{username}: {count} contributions")
 
-        daily_totals.append((username, count))
-        monthly_totals.append((username, month_total))
+        monthly_active_days.append((username, month_active_days))
 
         if count > 0:
-            committed.append((username, count))
+            streak = get_streak(username, yesterday)
+            committed.append((username, streak))
+            daily_totals.append((username, streak))
         else:
             inactive.append(username)
 
@@ -284,8 +296,8 @@ def main():
             "name": f"✅ Contributions ({len(committed)})",
             "value": (
                 "\n".join(
-                    f"**{username}** — {count} contribution(s)"
-                    for username, count in committed
+                    f"**{username}**"
+                    for username, _ in committed
                 )
                 if committed else "Nobody had contributions yesterday."
             ),
@@ -301,11 +313,11 @@ def main():
     }]
 
     leaderboard = sorted(
-        monthly_totals, key=lambda entry: entry[1], reverse=True
-    )[:3]
+        monthly_active_days, key=lambda entry: entry[1], reverse=True
+    )[:5]
     leaderboard_text = "\n".join(
-        f"**{position}. {username}** — {count} contribution(s)"
-        for position, (username, count) in enumerate(leaderboard, start=1)
+        f"**{position}. {username}** — {active_days} active day(s)"
+        for position, (username, active_days) in enumerate(leaderboard, start=1)
     )
     embeds.append({
         "title": f"🏆 Monthly Leaderboard — {month_start.strftime('%B %Y')}",
@@ -317,7 +329,6 @@ def main():
     with tempfile.NamedTemporaryFile(suffix=".png") as image_file:
         create_activity_dashboard(
             daily_totals,
-            monthly_totals,
             image_file.name,
         )
         send_discord_report(embeds, image_file.name)
