@@ -159,6 +159,16 @@ def get_display_name(username):
     return DISCORD_NAMES.get(username, username)
 
 
+def format_report_date(report_date):
+    day = report_date.day
+    if 10 < day % 100 < 14:
+        suffix = "th"
+    else:
+        suffix = {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
+
+    return report_date.strftime(f"%B {day}{suffix}, %Y")
+
+
 def load_avatar(username):
     response = requests.get(get_avatar_url(username), timeout=30)
     response.raise_for_status()
@@ -319,20 +329,18 @@ def main():
         monthly_active_days, key=lambda entry: entry[1], reverse=True
     )[:5]
     leaderboard_text = "\n".join(
-        f"**{position}. {get_display_name(username)}** — "
+        f"{position}. **{get_display_name(username)}** — "
         f"{active_days} active day(s)"
         for position, (username, active_days) in enumerate(leaderboard, start=1)
     )
     leaderboard_embed = {
         "title": f"🏆 Monthly Leaderboard — {month_start.strftime('%B %Y')}",
         "description": leaderboard_text or "No contributions yet this month.",
-        "footer": {"text": "Month-to-date active days"},
         "color": 0xFEE75C,
     }
 
     embeds = [{
-        "title": "GitHub Daily Report",
-        "description": f"**Date:** {yesterday.isoformat()}",
+        "title": format_report_date(yesterday),
         "color": 0x5865F2,
         "image": {"url": "attachment://daily-activity.png"},
         "fields": [{
