@@ -166,7 +166,7 @@ def format_report_date(report_date):
     else:
         suffix = {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
 
-    return f"{report_date.strftime('%A %B')} {day}{suffix}".upper()
+    return f"{report_date.strftime('%A %B')} {day}{suffix}"
 
 
 def format_active_days(active_days):
@@ -299,11 +299,19 @@ def send_discord_report(embeds, image_path):
 
     response.raise_for_status()
 
-    follow_up_response = requests.post(
-        DISCORD_WEBHOOK,
-        json={"content": "Keep the streak alive! 🔥"},
-        timeout=30,
-    )
+    with open(image_path, "rb") as image_file:
+        follow_up_response = requests.post(
+            DISCORD_WEBHOOK,
+            data={
+                "payload_json": json.dumps({
+                    "content": "Keep the streak alive! 🔥",
+                }),
+            },
+            files={
+                "file": ("daily-activity.png", image_file, "image/png"),
+            },
+            timeout=30,
+        )
     follow_up_response.raise_for_status()
 
 
@@ -348,8 +356,7 @@ def main():
     )
     leaderboard_embed = {
         "title": (
-            f"🏆 MONTHLY LEADERBOARD — "
-            f"{month_start.strftime('%B %Y').upper()}"
+            f"🏆 Monthly Leaderboard — {month_start.strftime('%B %Y')}"
         ),
         "description": leaderboard_text or "No contributions yet this month.",
         "color": 0xFEE75C,
@@ -358,7 +365,6 @@ def main():
     embeds = [{
         "title": format_report_date(yesterday),
         "color": 0x5865F2,
-        "image": {"url": "attachment://daily-activity.png"},
         "fields": [{
             "name": f"✅ Contributions ({len(committed)})",
             "value": (
