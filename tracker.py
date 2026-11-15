@@ -25,8 +25,6 @@ DISCORD_NAMES = {
     "loboa763": "rllymyself",
 }
 
-# Leave an account out of this mapping to use its GitHub avatar automatically.
-# Discord-specific image URLs can be added here later if desired.
 DISCORD_AVATARS = {
     "brandonngithub":
         "https://raw.githubusercontent.com/brandonngithub/github-activity-tracker/main/avatars/brandon.png",
@@ -282,30 +280,17 @@ def create_activity_dashboard(activity, output_path):
 
 
 def send_discord_report(embeds, image_path):
-
-    with open(image_path, "rb") as image_file:
-        response = requests.post(
-            DISCORD_WEBHOOK,
-            data={
-                "payload_json": json.dumps({
-                    "embeds": embeds,
-                }),
-            },
-            files={
-                "file": ("daily-activity.png", image_file, "image/png"),
-            },
-            timeout=30,
-        )
-
+    response = requests.post(
+        DISCORD_WEBHOOK,
+        json={"embeds": embeds},
+        timeout=30,
+    )
     response.raise_for_status()
 
     with open(image_path, "rb") as image_file:
         follow_up_response = requests.post(
             DISCORD_WEBHOOK,
-            data={
-                "payload_json": json.dumps({
-                }),
-            },
+            data={"payload_json": json.dumps({})},
             files={
                 "file": ("daily-activity.png", image_file, "image/png"),
             },
@@ -315,8 +300,6 @@ def send_discord_report(embeds, image_path):
 
 
 def main():
-
-    # Yesterday according to GitHub's UTC calendar
     yesterday = datetime.now(timezone.utc).date() - timedelta(days=1)
     month_start = yesterday.replace(day=1)
 
@@ -361,7 +344,7 @@ def main():
         "color": 0xFEE75C,
     }
 
-    embeds = [{
+    daily_embed = {
         "title": format_report_date(yesterday),
         "color": 0x5865F2,
         "fields": [{
@@ -385,15 +368,17 @@ def main():
             ),
             "inline": False,
         }],
-    }]
-    embeds.insert(0, leaderboard_embed)
+    }
 
     with tempfile.NamedTemporaryFile(suffix=".png") as image_file:
         create_activity_dashboard(
             daily_totals,
             image_file.name,
         )
-        send_discord_report(embeds, image_file.name)
+        send_discord_report(
+            [leaderboard_embed, daily_embed],
+            image_file.name,
+        )
 
     print("Discord report sent successfully!")
 
