@@ -11,16 +11,16 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 GITHUB_USERS = [
     "brandonngithub",
-    "amarz45",
     "nbkurian11",
     "Harshk10-star",
+    "amarz45",
     "loboa763",
 ]
 
 DISCORD_NAMES = {
-    "Harshk10-star": "_harsh_0052",
     "brandonngithub": "7brv",
     "nbkurian11": "youngneezy",
+    "Harshk10-star": "_harsh_0052",
     "amarz45": "amaral455",
     "loboa763": "rllymyself",
 }
@@ -28,12 +28,12 @@ DISCORD_NAMES = {
 DISCORD_AVATARS = {
     "brandonngithub":
         "https://raw.githubusercontent.com/brandonngithub/github-activity-tracker/main/avatars/brandon.png",
-    "amarz45":
-        "https://raw.githubusercontent.com/brandonngithub/github-activity-tracker/main/avatars/amar.png",
     "nbkurian11":
         "https://raw.githubusercontent.com/brandonngithub/github-activity-tracker/main/avatars/noel.png",
     "Harshk10-star":
         "https://raw.githubusercontent.com/brandonngithub/github-activity-tracker/main/avatars/harsh.png",
+    "amarz45":
+        "https://raw.githubusercontent.com/brandonngithub/github-activity-tracker/main/avatars/amar.png",
     "loboa763":
         "https://raw.githubusercontent.com/brandonngithub/github-activity-tracker/main/avatars/allister.png",
 }
