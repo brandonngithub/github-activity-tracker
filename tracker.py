@@ -171,9 +171,42 @@ def get_font(size, bold=False):
     return ImageFont.load_default()
 
 
+def draw_fire_icon(draw, x, y, size=22):
+    draw.polygon(
+        [
+            (x + size * 0.5, y),
+            (x + size * 0.82, y + size * 0.42),
+            (x + size * 0.78, y + size * 0.82),
+            (x + size * 0.5, y + size),
+            (x + size * 0.18, y + size * 0.82),
+            (x + size * 0.18, y + size * 0.5),
+        ],
+        fill="#ff5f1f",
+    )
+    draw.ellipse(
+        (
+            x + size * 0.3,
+            y + size * 0.42,
+            x + size * 0.7,
+            y + size * 0.92,
+        ),
+        fill="#ffb000",
+    )
+    draw.ellipse(
+        (
+            x + size * 0.42,
+            y + size * 0.58,
+            x + size * 0.62,
+            y + size * 0.92,
+        ),
+        fill="#fff3a3",
+    )
+
+
 def create_activity_dashboard(activity, output_path):
     card_width = 180
-    card_height = 230
+    card_height = 190
+    avatar_size = 118
     gap = 14
     padding = 24
     header_height = 58
@@ -181,7 +214,7 @@ def create_activity_dashboard(activity, output_path):
         "RGB",
         (
             padding * 2 + len(activity) * card_width + (len(activity) - 1) * gap,
-            header_height + padding * 2 + card_height,
+            header_height + padding * 2 + card_height + avatar_size // 2,
         ),
         "#17181c",
     )
@@ -195,9 +228,9 @@ def create_activity_dashboard(activity, output_path):
 
     for index, (username, streak) in enumerate(activity):
         x = padding + index * (card_width + gap)
-        y = header_height + padding
+        card_y = header_height + padding + avatar_size // 2
         draw.rounded_rectangle(
-            (x, y, x + card_width, y + card_height),
+            (x, card_y, x + card_width, card_y + card_height),
             radius=16,
             fill="#23252b",
             outline="#3d414b",
@@ -206,33 +239,32 @@ def create_activity_dashboard(activity, output_path):
 
         avatar = ImageOps.fit(
             load_avatar(username),
-            (92, 92),
+            (avatar_size, avatar_size),
             method=Image.Resampling.LANCZOS,
         )
         mask = Image.new("L", avatar.size, 0)
         ImageDraw.Draw(mask).ellipse((0, 0, *avatar.size), fill=255)
-        image.paste(avatar, (x + (card_width - 92) // 2, y + 18), mask)
+        image.paste(
+            avatar,
+            (x + (card_width - avatar_size) // 2, header_height + padding),
+            mask,
+        )
 
         username_font = get_font(15, bold=True)
         username_width = draw.textbbox((0, 0), username, font=username_font)[2]
         draw.text(
-            (x + (card_width - username_width) // 2, y + 119),
+            (x + (card_width - username_width) // 2, card_y + 83),
             username,
             fill="#f2f3f5",
             font=username_font,
         )
         draw.text(
-            (x + 18, y + 153),
-            "✅ Active yesterday",
-            fill="#aeb4c0",
-            font=get_font(13),
-        )
-        draw.text(
-            (x + 18, y + 174),
-            f"🔥 Streak: {streak} day(s)",
+            (x + 48, card_y + 127),
+            f"{streak} day streak",
             fill="#57f287",
             font=get_font(15, bold=True),
         )
+        draw_fire_icon(draw, x + 18, card_y + 124)
 
     image.save(output_path, format="PNG")
 
@@ -313,7 +345,8 @@ def main():
     }]
 
     leaderboard = sorted(
-        monthly_active_days, key=lambda entry: entry[1], reverse=True
+        monthly_active_days,
+        key=lambda entry: (-entry[1], entry[0].lower()),
     )[:5]
     leaderboard_text = "\n".join(
         f"**{position}. {username}** — {active_days} active day(s)"
