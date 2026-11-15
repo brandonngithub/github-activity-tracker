@@ -16,15 +16,15 @@ GITHUB_USERS = [
 # Discord-specific image URLs can be added here later if desired.
 DISCORD_AVATARS = {
     "brandonngithub":
-        "https://raw.githubusercontent.com/brandonngithub/github-activity-tracker/main/avatars/brandon.png",
+        "https://github.com/brandonngithub/github-activity-tracker/blob/main/avatars/brandon.png",
     "amarz45":
-        "https://raw.githubusercontent.com/brandonngithub/github-activity-tracker/main/avatars/amar.png",
+        "https://github.com/brandonngithub/github-activity-tracker/blob/main/avatars/amar.png",
     "nbkurian11":
-        "https://raw.githubusercontent.com/brandonngithub/github-activity-tracker/main/avatars/noel.png",
+        "https://github.com/brandonngithub/github-activity-tracker/blob/main/avatars/noel.png",
     "Harshk10-star":
-        "https://raw.githubusercontent.com/brandonngithub/github-activity-tracker/main/avatars/harsh.png",
+        "https://github.com/brandonngithub/github-activity-tracker/blob/main/avatars/harsh.png",
     "loboa763":
-        "https://raw.githubusercontent.com/brandonngithub/github-activity-tracker/main/avatars/allister.png",
+        "https://github.com/brandonngithub/github-activity-tracker/blob/main/avatars/allister.png",
 }
 
 GITHUB_TOKEN = os.environ["GH_TOKEN"]
