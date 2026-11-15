@@ -17,6 +17,14 @@ GITHUB_USERS = [
     "loboa763",
 ]
 
+DISCORD_NAMES = {
+    "Harshk10-star": "_harsh_0052",
+    "brandonngithub": "7brv",
+    "nbkurian11": "youngneezy",
+    "amarz45": "amaral455",
+    "loboa763": "rllymyself",
+}
+
 # Leave an account out of this mapping to use its GitHub avatar automatically.
 # Discord-specific image URLs can be added here later if desired.
 DISCORD_AVATARS = {
@@ -147,6 +155,10 @@ def get_avatar_url(username):
     )
 
 
+def get_display_name(username):
+    return DISCORD_NAMES.get(username, username)
+
+
 def load_avatar(username):
     response = requests.get(get_avatar_url(username), timeout=30)
     response.raise_for_status()
@@ -200,32 +212,37 @@ def create_activity_dashboard(activity, output_path):
     card_height = 230
     gap = 14
     padding = 24
-    header_height = 58
     image = Image.new(
         "RGB",
         (
             padding * 2 + len(activity) * card_width + (len(activity) - 1) * gap,
-            header_height + padding * 2 + card_height,
+            padding * 2 + card_height,
         ),
         "#17181c",
     )
     draw = ImageDraw.Draw(image)
-    draw.text(
-        (padding, 18),
-        "GitHub Activity",
-        fill="#f2f3f5",
-        font=get_font(24, bold=True),
-    )
 
     for index, (username, streak) in enumerate(activity):
         x = padding + index * (card_width + gap)
-        y = header_height + padding
+        y = padding
         draw.rounded_rectangle(
             (x, y, x + card_width, y + card_height),
             radius=16,
             fill="#23252b",
             outline="#3d414b",
             width=2,
+        )
+
+        display_name = get_display_name(username)
+        username_font = get_font(15, bold=True)
+        username_width = draw.textbbox(
+            (0, 0), display_name, font=username_font
+        )[2]
+        draw.text(
+            (x + (card_width - username_width) // 2, y + 14),
+            display_name,
+            fill="#f2f3f5",
+            font=username_font,
         )
 
         avatar = ImageOps.fit(
@@ -235,23 +252,15 @@ def create_activity_dashboard(activity, output_path):
         )
         mask = Image.new("L", avatar.size, 0)
         ImageDraw.Draw(mask).ellipse((0, 0, *avatar.size), fill=255)
-        image.paste(avatar, (x + (card_width - 92) // 2, y + 18), mask)
+        image.paste(avatar, (x + (card_width - 92) // 2, y + 42), mask)
 
-        username_font = get_font(15, bold=True)
-        username_width = draw.textbbox((0, 0), username, font=username_font)[2]
         draw.text(
-            (x + (card_width - username_width) // 2, y + 119),
-            username,
-            fill="#f2f3f5",
-            font=username_font,
-        )
-        draw.text(
-            (x + 42, y + 174),
+            (x + 42, y + 158),
             f"{streak} day streak",
             fill="#57f287",
             font=get_font(15, bold=True),
         )
-        draw_fire_icon(draw, x + 18, y + 174, size=18)
+        draw_fire_icon(draw, x + 18, y + 158, size=18)
 
     image.save(output_path, format="PNG")
 
@@ -306,8 +315,23 @@ def main():
         else:
             inactive.append(username)
 
+    leaderboard = sorted(
+        monthly_active_days, key=lambda entry: entry[1], reverse=True
+    )[:5]
+    leaderboard_text = "\n".join(
+        f"**{position}. {get_display_name(username)}** — "
+        f"{active_days} active day(s)"
+        for position, (username, active_days) in enumerate(leaderboard, start=1)
+    )
+    leaderboard_embed = {
+        "title": f"🏆 Monthly Leaderboard — {month_start.strftime('%B %Y')}",
+        "description": leaderboard_text or "No contributions yet this month.",
+        "footer": {"text": "Month-to-date active days"},
+        "color": 0xFEE75C,
+    }
+
     embeds = [{
-        "title": "GitHub Daily Activity Report",
+        "title": "GitHub Daily Report",
         "description": f"**Date:** {yesterday.isoformat()}",
         "color": 0x5865F2,
         "image": {"url": "attachment://daily-activity.png"},
@@ -315,7 +339,7 @@ def main():
             "name": f"✅ Contributions ({len(committed)})",
             "value": (
                 "\n".join(
-                    f"**{username}**"
+                    f"**{get_display_name(username)}**"
                     for username, _ in committed
                 )
                 if committed else "Nobody had contributions yesterday."
@@ -324,26 +348,16 @@ def main():
         }, {
             "name": f"❌ No contributions ({len(inactive)})",
             "value": (
-                "\n".join(f"**{username}**" for username in inactive)
+                "\n".join(
+                    f"**{get_display_name(username)}**"
+                    for username in inactive
+                )
                 if inactive else "Everyone had contributions!"
             ),
             "inline": False,
         }],
     }]
-
-    leaderboard = sorted(
-        monthly_active_days, key=lambda entry: entry[1], reverse=True
-    )[:5]
-    leaderboard_text = "\n".join(
-        f"**{position}. {username}** — {active_days} active day(s)"
-        for position, (username, active_days) in enumerate(leaderboard, start=1)
-    )
-    embeds.append({
-        "title": f"🏆 Monthly Leaderboard — {month_start.strftime('%B %Y')}",
-        "description": leaderboard_text or "No contributions yet this month.",
-        "footer": {"text": "Month-to-date totals"},
-        "color": 0xFEE75C,
-    })
+    embeds.insert(0, leaderboard_embed)
 
     with tempfile.NamedTemporaryFile(suffix=".png") as image_file:
         create_activity_dashboard(
