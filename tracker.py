@@ -304,7 +304,6 @@ def send_discord_report(embeds, image_path):
             DISCORD_WEBHOOK,
             data={
                 "payload_json": json.dumps({
-                    "content": "Keep the streak alive! 🔥",
                 }),
             },
             files={
