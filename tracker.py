@@ -17,7 +17,8 @@ GITHUB_USERS = [
     "amarz45",
     "loboa763",
     "vickenpogosyan",
-    "harito-git"
+    "harito-git",
+    "sf-1000"
 ]
 
 DISCORD_NAMES = {
@@ -28,7 +29,8 @@ DISCORD_NAMES = {
     "amarz45": "amaral455",
     "loboa763": "rllymyself",
     "vickenpogosyan": "vic2slick_",
-    "harito-git": ".curryyt"
+    "harito-git": ".curryyt",
+    "sf-1000": "simi0892"
 }
 
 DISCORD_AVATARS = {
@@ -47,7 +49,9 @@ DISCORD_AVATARS = {
     "vickenpogosyan":
         "https://raw.githubusercontent.com/brandonngithub/github-activity-tracker/main/avatars/vicken.png",
     "harito-git":
-        "https://raw.githubusercontent.com/brandonngithub/github-activity-tracker/main/avatars/harit.png"
+        "https://raw.githubusercontent.com/brandonngithub/github-activity-tracker/main/avatars/harit.png",
+    "sf-1000":
+        "https://raw.githubusercontent.com/brandonngithub/github-activity-tracker/main/avatars/simi.png"
 }
 
 GITHUB_TOKEN = os.environ["GH_TOKEN"]
